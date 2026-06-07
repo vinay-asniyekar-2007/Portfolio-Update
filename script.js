@@ -2,28 +2,82 @@
    VINAY ASNIYEKAR — PORTFOLIO JS
    ══════════════════════════════════════════════ */
 
-/* ─── CUSTOM CURSOR ───────────────────────────── */
-const dot  = document.getElementById('cursorDot');
-const ring = document.getElementById('cursorRing');
+/* ─── LIQUID GLASS CURSOR ─────────────────────── */
+// Remove old cursor elements from HTML if they exist
+['cursorDot','cursorRing'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+});
 
-let mouseX = -200, mouseY = -200;
-let ringX  = -200, ringY  = -200;
+// Create single liquid glass cursor
+const cursor = document.createElement('div');
+cursor.className = 'liquid-cursor';
+document.body.appendChild(cursor);
+
+let mouseX = window.innerWidth  / 2;
+let mouseY = window.innerHeight / 2;
+
+// Spring physics state
+let curX = mouseX, curY  = mouseY;
+let velX = 0,      velY  = 0;
+const SPRING  = 0.18;
+const DAMPING = 0.72;
 
 document.addEventListener('mousemove', e => {
   mouseX = e.clientX;
   mouseY = e.clientY;
-  dot.style.left = mouseX + 'px';
-  dot.style.top  = mouseY + 'px';
 });
 
-function animateRing() {
-  ringX += (mouseX - ringX) * 0.12;
-  ringY += (mouseY - ringY) * 0.12;
-  ring.style.left = ringX + 'px';
-  ring.style.top  = ringY + 'px';
-  requestAnimationFrame(animateRing);
+// Hide when leaving window
+document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
+document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
+
+// Click squish
+document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
+document.addEventListener('mouseup',   () => cursor.classList.remove('clicking'));
+
+// Hover state on interactive elements
+const interactives = 'a, button, [role="button"], input, textarea, select, label';
+document.querySelectorAll(interactives).forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+  el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+});
+// Watch for future dynamic elements via delegation
+document.addEventListener('mouseover', e => {
+  if (e.target.matches && e.target.matches(interactives)) cursor.classList.add('hovering');
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.matches && e.target.matches(interactives)) cursor.classList.remove('hovering');
+});
+
+function animateCursor() {
+  // Spring force
+  velX += (mouseX - curX) * SPRING;
+  velY += (mouseY - curY) * SPRING;
+
+  // Damping
+  velX *= DAMPING;
+  velY *= DAMPING;
+
+  curX += velX;
+  curY += velY;
+
+  // Liquid stretch — elongates in direction of travel
+  const speed   = Math.hypot(velX, velY);
+  const stretch = Math.min(speed * 0.045, 0.28);
+  const angle   = Math.atan2(velY, velX) * (180 / Math.PI);
+
+  const scaleX = 1 + stretch;
+  const scaleY = 1 - stretch * 0.5;
+
+  cursor.style.left = curX + 'px';
+  cursor.style.top  = curY + 'px';
+  cursor.style.transform =
+    `translate(-50%, -50%) rotate(${angle}deg) scaleX(${scaleX}) scaleY(${scaleY})`;
+
+  requestAnimationFrame(animateCursor);
 }
-animateRing();
+animateCursor();
 
 /* ─── PARTICLE CANVAS ─────────────────────────── */
 const canvas = document.getElementById('bgCanvas');
