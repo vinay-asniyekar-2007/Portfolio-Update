@@ -3,81 +3,78 @@
    ══════════════════════════════════════════════ */
 
 /* ─── LIQUID GLASS CURSOR ─────────────────────── */
-// Remove old cursor elements from HTML if they exist
 ['cursorDot','cursorRing'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.remove();
 });
 
-// Create single liquid glass cursor
+// Inject hidden SVG filter for glass edge distortion
+document.body.insertAdjacentHTML('afterbegin', `
+<svg class="glass-svg-defs" aria-hidden="true">
+  <defs>
+    <filter id="glass-distort" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="1" seed="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="5"
+        xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>`);
+
+// Build cursor element
 const cursor = document.createElement('div');
 cursor.className = 'liquid-cursor';
 document.body.appendChild(cursor);
 
 let mouseX = window.innerWidth  / 2;
 let mouseY = window.innerHeight / 2;
+let curX   = mouseX, curY = mouseY;
+let velX   = 0,      velY = 0;
 
-// Spring physics state
-let curX = mouseX, curY  = mouseY;
-let velX = 0,      velY  = 0;
-const SPRING  = 0.18;
-const DAMPING = 0.72;
+const SPRING  = 0.16;
+const DAMPING = 0.70;
 
-document.addEventListener('mousemove', e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+document.addEventListener('mouseleave', () => { cursor.style.opacity = '0'; });
+document.addEventListener('mouseenter', () => { cursor.style.opacity = '1'; });
+document.addEventListener('mousedown',  () => cursor.classList.add('clicking'));
+document.addEventListener('mouseup',    () => cursor.classList.remove('clicking'));
 
-// Hide when leaving window
-document.addEventListener('mouseleave', () => cursor.style.opacity = '0');
-document.addEventListener('mouseenter', () => cursor.style.opacity = '1');
-
-// Click squish
-document.addEventListener('mousedown', () => cursor.classList.add('clicking'));
-document.addEventListener('mouseup',   () => cursor.classList.remove('clicking'));
-
-// Hover state on interactive elements
-const interactives = 'a, button, [role="button"], input, textarea, select, label';
-document.querySelectorAll(interactives).forEach(el => {
-  el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
-  el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
-});
-// Watch for future dynamic elements via delegation
+// Interactive element detection
+const INTERACTIVE = 'a, button, [role="button"], input, textarea, select, label, .nav-link, .nav-cta, .btn-primary, .btn-ghost, .contact-link-card, .skill-card, .project-card';
 document.addEventListener('mouseover', e => {
-  if (e.target.matches && e.target.matches(interactives)) cursor.classList.add('hovering');
+  if (e.target.closest && e.target.closest(INTERACTIVE)) cursor.classList.add('hovering');
 });
 document.addEventListener('mouseout', e => {
-  if (e.target.matches && e.target.matches(interactives)) cursor.classList.remove('hovering');
+  if (e.target.closest && e.target.closest(INTERACTIVE)) cursor.classList.remove('hovering');
 });
 
 function animateCursor() {
-  // Spring force
   velX += (mouseX - curX) * SPRING;
   velY += (mouseY - curY) * SPRING;
-
-  // Damping
   velX *= DAMPING;
   velY *= DAMPING;
-
   curX += velX;
   curY += velY;
 
-  // Liquid stretch — elongates in direction of travel
+  // Liquid stretch in direction of travel
   const speed   = Math.hypot(velX, velY);
-  const stretch = Math.min(speed * 0.045, 0.28);
+  const stretch = Math.min(speed * 0.042, 0.30);
   const angle   = Math.atan2(velY, velX) * (180 / Math.PI);
 
-  const scaleX = 1 + stretch;
-  const scaleY = 1 - stretch * 0.5;
-
-  cursor.style.left = curX + 'px';
-  cursor.style.top  = curY + 'px';
+  cursor.style.left      = curX + 'px';
+  cursor.style.top       = curY + 'px';
   cursor.style.transform =
-    `translate(-50%, -50%) rotate(${angle}deg) scaleX(${scaleX}) scaleY(${scaleY})`;
+    `translate(-50%,-50%) rotate(${angle}deg) scaleX(${1 + stretch}) scaleY(${1 - stretch * 0.5})`;
 
   requestAnimationFrame(animateCursor);
 }
 animateCursor();
+
+/* ─── INJECT glass-pill ON INTERACTIVE ELEMENTS ── */
+// Nav links & CTA
+document.querySelectorAll('.nav-link, .nav-cta, .btn-primary, .btn-ghost').forEach(el => {
+  el.classList.add('glass-pill');
+});
 
 /* ─── PARTICLE CANVAS ─────────────────────────── */
 const canvas = document.getElementById('bgCanvas');
