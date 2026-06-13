@@ -241,6 +241,10 @@ body {
   padding: 0 4px;
   border-radius: 4px;
 }
+.legend_highlight{
+  color: var(--cyan);
+  border-radius:8px;
+}
 em { font-style: normal; color: var(--cyan); }
 
 /* ─── NAV ─────────────────────────────────────── */
